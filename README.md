@@ -1,34 +1,228 @@
-# AstroNvim Template
-
-**NOTE:** This is for AstroNvim v5+
-
-A template for getting started with [AstroNvim](https://github.com/AstroNvim/AstroNvim)
-
-## 🛠️ Installation
-
-#### Make a backup of your current nvim and shared folder
+# New VM Dependencies & Terminal Setup
 
 ```shell
-mv ~/.config/nvim ~/.config/nvim.bak
-mv ~/.local/share/nvim ~/.local/share/nvim.bak
-mv ~/.local/state/nvim ~/.local/state/nvim.bak
-mv ~/.cache/nvim ~/.cache/nvim.bak
+# Clear out old settings (if present)
+rm -rf ~/.config/nvim
+rm -rf ~/.local/share/nvim
+rm -rf ~/.local/state/nvim
+rm -rf ~/.cache/nvim
+```
+## Dependencies & Terminal
+```bash
+# Install dependencies
+sudo apt update
+sudo apt upgrade
+
+# Dev packages
+sudo apt install net-tools
+sudo apt install xclip
+
+# Nvim dependencies
+sudo apt install ripgrep
+sudo snap install nvim --classic
+sudo apt install vim
+sudo apt install curl
+
+# Git setup
+sudo apt install git
+git config --user.name "<name>"
+git config --user.email "<email>"
+git config --global core.editor “nvim”
+ssh-keygen -t rsa -b 4096
+ssh-add ~./ssh/id_rsa
+
+# Download Hackfont - https://www.nerdfonts.com/font-downloads
+cd ~/Downloads
+sudo unzip Hack.zip -d /usr/local/share/fonts
+# Go to terminal preferences and select Hackfont mono
+sudo fc-cache -f -v
+# Close terminal, open another
+
+# Terminal Catpuccin theme
+# https://github.com/catppuccin/gnome-terminal
+curl -L https://raw.githubusercontent.com/catppuccin/gnome-terminal/v1.0.0/install.py | python3 -
+# Go go terminal preferences, set as default
+# Close terminal, open another
+
+# Put terminal in vim mode.
+# Add the below line to ~/.bashrc
+set -o vi
 ```
 
-#### Create a new user repository from this template
+## Tmux 
+```bash
+# Install tmux and plugin manager
+sudo apt install tmux
+git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm 
 
-Press the "Use this template" button above to create a new repository to store your user configuration.
-
-You can also just clone this repository directly if you do not want to track your user configuration in GitHub.
-
-#### Clone the repository
-
-```shell
-git clone https://github.com/<your_user>/<your_repository> ~/.config/nvim
+# Create config file
+vim ~/.tmux.conf
 ```
 
-#### Start Neovim
+### Tmux config file settings
+```bash
+unbind r
+bind r source-file ~/.tmux.conf
 
-```shell
+set -g prefix C-s
+set -g status off
+set -g mouse on
+
+# Navigate with vim keys
+# Hold Ctrl + hjkl
+setw -g mode-keys vi
+bind-key -n -r C-h select-pane -L
+bind-key -n -r C-j select-pane -D
+bind-key -n -r C-k select-pane -U
+bind-key -n -r C-l select-pane -R
+
+# Resize panes with vim keys
+# Ctrl + s + hjkl
+bind -r h resize-pane -L 5
+bind -r j resize-pane -D 5
+bind -r k resize-pane -U 5
+bind -r l resize-pane -R 5
+
+# Show colors in terminal 
+set -g default-terminal "screen-256color"
+# Fix mismatched terminal + nvim colors
+set-option -sa terminal-features ',xterm-256color:RGB'
+
+# Copy directly to system keyboard
+bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel 'xclip -in -selection clipboard'
+
+# Reduce escape-time for faster vim responsiveness
+set-option -s escape-time 0
+
+# Increase scrollback history
+set -g history-limit 50000
+
+# List of plugins
+#####################################################
+# Plugin manager
+set -g @plugin 'tmux-plugins/tpm'
+
+# Navigate between tmux and vim with same keybindings
+set -g @plugin 'christoomey/vim-tmux-navigator'
+#####################################################
+
+# Initialize TMUX plugin manager (keep this line at the bottom of tmux.conf)
+run '~/.tmux/plugins/tpm/tpm'
+```
+
+### Finalize Tmux setup
+```bash
+# Start a new tmux session
+tmux
+
+# Source the config file to apply settings
+tmux source-file ~/.tmux.conf
+
+# Inside tmux, press Ctrl+s then I (capital i) to install plugins
+```
+
+### Install AstroNvim configuration
+```bash
+git clone https://github.com/EthanMBoos/astro-starter ~/.config/nvim
 nvim
 ```
+
+---
+## Configure clangd lsp for any docker project
+Install clangd in the container. Either add the dependency to the dockerfile on container build or install by cli,
+```bash
+# Install older clangd version 10.0 from command line
+# ---------------------------------------------------
+sudo apt update
+sudo apt install clangd
+
+# Install newest clangd version 20.0 from dockerfile
+# --------------------------------------------------
+ARG LLVM_VERSION=20
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        wget \
+        gnupg \
+        lsb-release \
+        software-properties-common && \
+    \
+    # Fetch and run the official LLVM repository installer script
+    wget -O - https://apt.llvm.org/llvm.sh | bash -s -- ${LLVM_VERSION} && \
+    apt-get install -y clangd-${LLVM_VERSION} && \
+    \
+    # Create a generic symlink so you can call `clangd`
+    ln -s /usr/bin/clangd-${LLVM_VERSION} /usr/bin/clangd && \
+    rm -rf /var/lib/apt/lists/*
+```
+Generate a `compile_commands.json` file. Add the following line to your top-level `CMakeLists.txt` file and re-run CMake.
+```bash
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+```
+
+Configure `astrolsp.lua` to match the docker environment,
+```bash
+clangd = {
+        cmd = {
+          "docker",
+          "exec",
+          "-i",
+          "<docker_container>", -- EDIT THIS
+          "clangd",
+          "--background-index",
+          "--path-mappings=/home/<user>/code=/home/<docker_user>", -- EDIT THIS
+          "--compile-commands-dir=/home/<docker_user>/project/build", -- EDIT THIS
+        },
+      },
+```
+Verify the setup. Run `:LspInfo` in Neovim to confirm that the clangd client is attached and running. If not installed, run `:Mason` and press the `i` key on clangd.
+
+**Tmux hotkeys**,
+| Action              | Keybinding                          |
+| :------------------ | :---------------------------------- |
+| **Enter Prefix** | `Ctrl` + `s`                        |
+| **Navigate Panes** | `Ctrl` + `h` / `j` / `k` / `l`      |
+| **Resize Panes** | `Ctrl` + `s` then `h` / `j` / `k` / `l` |
+| **Install Plugins** | `Ctrl` + `s` then `I` (capital i)   |
+
+**Neovim hotkeys**,
+| Keybinding | Description | Category |
+| :--- | :--- | :--- |
+| `<Leader>` `H` | Switch between header/source file (Clangd) | **C++/LSP** |
+| `<Leader>` `h` | Switch between header/source file (Generic) | **C++/LSP** |
+| `<Leader>` `fd` | Go to Definition | **C++/LSP** |
+| `<Leader>` `fr` | Go to References | **C++/LSP** |
+| `<Leader>` `re` | **(Visual)** Extract selected code to a function | **Refactoring** |
+| `<Leader>` `rv` | **(Visual)** Extract selected code to a variable | **Refactoring** |
+| `<Leader>` `ri` | Inline variable under cursor or in selection | **Refactoring** |
+| `<Leader>` `rr` | Select a refactor to apply | **Refactoring** |
+| `<Leader>` `rdp` | Add a debug print statement (`std::cout << "HERE" ...`) | **Refactoring** |
+| `<Leader>` `rdv` | Print variable under cursor or in selection | **Refactoring** |
+| `<Leader>` `gdd` | Open diff view of the working tree | **Git (Diffview)** |
+| `<Leader>` `gdm` | Compare current branch with `master` | **Git (Diffview)** |
+| `<Leader>` `gdf` | View current file's git history | **Git (Diffview)** |
+| `<Leader>` `gdc` | Close all diff views | **Git (Diffview)** |
+| `<Leader>` `ghp` | Preview the git hunk under the cursor | **Git (Gitsigns)** |
+| `<Leader>` `ghs` | Stage the git hunk under the cursor | **Git (Gitsigns)** |
+| `<Leader>` `ghr` | Reset the git hunk under the cursor | **Git (Gitsigns)** |
+| `<Tab>` | Go to the next buffer | **Buffers** |
+| `<S-Tab>` | Go to the previous buffer | **Buffers** |
+
+---
+### Bonus: VirtualBox Guest Additions
+Install dependencies
+```bash
+sudo apt install build-essential dkms
+```
+
+With vm closed go to vbox vm Settings > Display > Enable 3D Acceleration
+
+Insert guest additions cd image.
+
+Double click on cd in banner. Open in terminal.
+```bash
+sudo ./VBoxLinuxAdditions.run
+```
+Restart vm.
+
+Enable autoresize and bidirectional keyboard.
