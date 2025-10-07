@@ -128,7 +128,7 @@ nvim
 ```
 
 ---
-## Configure clangd lsp for any docker project
+## Configure clangd lsp for docker projects
 Install clangd in the container. Either add the dependency to the dockerfile on container build or install by cli,
 ```bash
 # Install older clangd version 10.0 from command line
@@ -136,8 +136,8 @@ Install clangd in the container. Either add the dependency to the dockerfile on 
 sudo apt update
 sudo apt install clangd
 
-# Install newest clangd version 20.0 from dockerfile
-# --------------------------------------------------
+# Install newest clangd and lldb version 20.0 from dockerfile
+# -----------------------------------------------------------
 ARG LLVM_VERSION=20
 
 RUN apt-get update && \
@@ -149,10 +149,17 @@ RUN apt-get update && \
     \
     # Fetch and run the official LLVM repository installer script
     wget -O - https://apt.llvm.org/llvm.sh | bash -s -- ${LLVM_VERSION} && \
-    apt-get install -y clangd-${LLVM_VERSION} && \
     \
-    # Create a generic symlink so you can call `clangd`
+    # Install both clangd and lldb from the new repository
+    apt-get install -y \
+        clangd-${LLVM_VERSION} \
+        lldb-${LLVM_VERSION} && \
+    \
+    # Create generic symlinks so you can call `clangd` and `lldb`
     ln -s /usr/bin/clangd-${LLVM_VERSION} /usr/bin/clangd && \
+    ln -s /usr/bin/lldb-${LLVM_VERSION} /usr/bin/lldb && \
+    \
+    # Clean up
     rm -rf /var/lib/apt/lists/*
 ```
 Generate a `compile_commands.json` file. Add the following line to your top-level `CMakeLists.txt` file and re-run CMake.
@@ -176,6 +183,37 @@ clangd = {
       },
 ```
 Verify the setup. Run `:LspInfo` in Neovim to confirm that the clangd client is attached and running. If not installed, run `:Mason` and press the `i` key on clangd.
+
+## Configure lldb debug server (working the kinks out)
+Add this entry to `docker-compose.yml`
+```yaml
+# Grant the container ptrace() process control
+cap_add:
+    -SYS_PTRACE
+```
+
+Edit `dap-cpp.lua` to match docker project file path.
+```bash
+sourceMap = {
+    ["/home/<docker_user>"] = "${workspaceFolder}", -- EDIT THIS
+},
+```
+
+Run cmake with an added flag: `-DCMAKE_BUILD=DEBUG`
+
+Start the container and get the PID
+```bash
+docker start <container_name>
+docker exec <container_name> ps -aux
+```
+
+Initiate the debugger
+```bash
+# Set breakpoints in AstroNvim using <Leader>db
+docker exec -it oracle-development_1 lldb-server gdbserver --listen "*12345" --attach <PID>
+```
+
+---
 
 **Tmux hotkeys**,
 | Action              | Keybinding                          |

@@ -11,12 +11,10 @@ return {
     opts = {
       -- Make sure to use the names found in `:Mason`
       ensure_installed = {
-        -- install language servers
         "lua-language-server",
         "stylua",
         "clangd",
-
-        -- install any other package
+        "codelldb",
         "tree-sitter-cli",
       },
     },
