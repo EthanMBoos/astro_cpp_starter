@@ -25,9 +25,9 @@ sudo apt install curl
 
 # Git setup
 sudo apt install git
-git config --user.name "<name>"
-git config --user.email "<email>"
-git config --global core.editor “nvim”
+git config --global user.name "<name>"
+git config --global user.email "<email>"
+git config --global core.editor nvim
 ssh-keygen -t rsa -b 4096
 ssh-add ~./ssh/id_rsa
 
