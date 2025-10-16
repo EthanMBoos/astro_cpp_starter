@@ -23,11 +23,15 @@ sudo snap install nvim --classic
 sudo apt install vim
 sudo apt install curl
 
+# If using python, install nodejs dependency for pyright
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install nodejs -y
+
 # Git setup
 sudo apt install git
-git config --user.name "<name>"
-git config --user.email "<email>"
-git config --global core.editor “nvim”
+git config --global user.name "<name>"
+git config --global user.email "<email>"
+git config --global core.editor nvim
 ssh-keygen -t rsa -b 4096
 ssh-add ~./ssh/id_rsa
 
@@ -43,10 +47,6 @@ sudo fc-cache -f -v
 curl -L https://raw.githubusercontent.com/catppuccin/gnome-terminal/v1.0.0/install.py | python3 -
 # Go go terminal preferences, set as default
 # Close terminal, open another
-
-# Put terminal in vim mode.
-# Add the below line to ~/.bashrc
-set -o vi
 ```
 
 ## Tmux 
@@ -68,34 +68,60 @@ set -g prefix C-s
 set -g status off
 set -g mouse on
 
-# Navigate with vim keys
-# Hold Ctrl + hjkl
-setw -g mode-keys vi
-bind-key -n -r C-h select-pane -L
-bind-key -n -r C-j select-pane -D
-bind-key -n -r C-k select-pane -U
-bind-key -n -r C-l select-pane -R
-
-# Resize panes with vim keys
-# Ctrl + s + hjkl
-bind -r h resize-pane -L 5
-bind -r j resize-pane -D 5
-bind -r k resize-pane -U 5
-bind -r l resize-pane -R 5
-
-# Show colors in terminal 
+# Show colors in terminal
 set -g default-terminal "screen-256color"
 # Fix mismatched terminal + nvim colors
 set-option -sa terminal-features ',xterm-256color:RGB'
 
-# Copy directly to system keyboard
-bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel 'xclip -in -selection clipboard'
+# Enable native OSC 52 clipboard handling (Remote copy/paste)
+set -s set-clipboard on
+# Allow Neovim to send escape sequences (images, clipboard) through Tmux
+set -g allow-passthrough on
 
-# Reduce escape-time for faster vim responsiveness
-set-option -s escape-time 0
+# When ssh'd into a robot with only vim, escape key delay causes problems with tmux
+set-option -g escape-time 0
 
-# Increase scrollback history
-set -g history-limit 50000
+# Use Vi mode keys
+setw -g mode-keys vi
+
+# ----------------------------------------------------------------------
+# DETECT NEOVIM
+# Check if the current pane is running Nvim. Used for Smart Nav & Resize.
+# ----------------------------------------------------------------------
+is_nvim="ps -o state= -o comm= -t '#{pane_tty}' | grep -iqE '^[^TXZ ]+ +(\\S+\\/)?g?(view|n?vim?x?)(diff)?$'"
+
+# ----------------------------------------------------------------------
+# SMART NAVIGATION (Ctrl + h/j/k/l)
+# Fixes the Telescope issue. If in Nvim, we send keys there. If not, we switch panes.
+# ----------------------------------------------------------------------
+bind-key -n C-h if-shell "$is_nvim" 'send-keys C-h' 'select-pane -L'
+bind-key -n C-j if-shell "$is_nvim" 'send-keys C-j' 'select-pane -D'
+bind-key -n C-k if-shell "$is_nvim" 'send-keys C-k' 'select-pane -U'
+bind-key -n C-l if-shell "$is_nvim" 'send-keys C-l' 'select-pane -R'
+
+# ----------------------------------------------------------------------
+# SMART RESIZE BINDINGS (Ctrl + s + h/j/k/l)
+# ----------------------------------------------------------------------
+
+# Resize Left (h): Send Alt-h to Nvim (allows resizing file tree)
+bind -r h if-shell "$is_nvim" "send-keys M-h" "resize-pane -L 5"
+
+# Resize Right (l): Send Alt-l to Nvim (allows resizing file tree)
+bind -r l if-shell "$is_nvim" "send-keys M-l" "resize-pane -R 5"
+
+# Resize Down (j): ALWAYS Resize Tmux Pane (Prevents Nvim scrolling issue)
+bind -r j resize-pane -D 5
+
+# Resize Up (k): ALWAYS Resize Tmux Pane
+bind -r k resize-pane -U 5
+
+# ----------------------------------------------------------------------
+# COPY MODE & EXTRAS
+# ----------------------------------------------------------------------
+
+# A smart binding for entering copy mode with Ctrl-[
+# It passes the key to vim if vim is active, otherwise, it enters copy mode
+bind-key -n C-[ if-shell "$is_nvim" "send-keys C-[" "copy-mode"
 
 # List of plugins
 #####################################################
@@ -103,6 +129,7 @@ set -g history-limit 50000
 set -g @plugin 'tmux-plugins/tpm'
 
 # Navigate between tmux and vim with same keybindings
+# (Note: The manual bindings above take precedence, but this is good to keep)
 set -g @plugin 'christoomey/vim-tmux-navigator'
 #####################################################
 
@@ -183,6 +210,18 @@ clangd = {
       },
 ```
 Verify the setup. Run `:LspInfo` in Neovim to confirm that the clangd client is attached and running. If not installed, run `:Mason` and press the `i` key on clangd.
+
+## Pyright lsp
+Configure `astrolsp.lua` to match your host python installation location,
+```bash
+pyright = {
+         settings = {
+           python = {
+             pythonPath = "/usr/bin/python3",
+           },
+         },
+       },
+```
 
 ## Configure lldb debug server (working the kinks out)
 Add this entry to `docker-compose.yml`

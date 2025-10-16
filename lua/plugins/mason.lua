@@ -15,6 +15,7 @@ return {
         "stylua",
         "clangd",
         "codelldb",
+        "pyright",
         "tree-sitter-cli",
       },
     },
