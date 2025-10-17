@@ -62,6 +62,13 @@ return {
         },
         filetypes = { "c", "cpp" , "h"},
       },
+      pyright = {
+        settings = {
+          python = {
+            pythonPath = "/usr/bin/python3",
+          },
+        },
+      },
     },
   },
 }
