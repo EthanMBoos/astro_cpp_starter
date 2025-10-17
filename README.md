@@ -184,6 +184,22 @@ clangd = {
 ```
 Verify the setup. Run `:LspInfo` in Neovim to confirm that the clangd client is attached and running. If not installed, run `:Mason` and press the `i` key on clangd.
 
+## Pyright lsp
+Install nodejs dependency
+```bash
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+```
+Configure `astrolsp.lua` to match your host python installation location,
+```bash
+pyright = {
+         settings = {
+           python = {
+             pythonPath = "/usr/bin/python3",
+           },
+         },
+       },
+```
+
 ## Configure lldb debug server (working the kinks out)
 Add this entry to `docker-compose.yml`
 ```yaml
