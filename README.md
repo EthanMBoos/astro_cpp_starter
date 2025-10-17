@@ -23,6 +23,9 @@ sudo snap install nvim --classic
 sudo apt install vim
 sudo apt install curl
 
+# If using python, install nodejs dependency for pyright
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+
 # Git setup
 sudo apt install git
 git config --global user.name "<name>"
@@ -185,10 +188,6 @@ clangd = {
 Verify the setup. Run `:LspInfo` in Neovim to confirm that the clangd client is attached and running. If not installed, run `:Mason` and press the `i` key on clangd.
 
 ## Pyright lsp
-Install nodejs dependency
-```bash
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-```
 Configure `astrolsp.lua` to match your host python installation location,
 ```bash
 pyright = {
