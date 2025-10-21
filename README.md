@@ -25,6 +25,7 @@ sudo apt install curl
 
 # If using python, install nodejs dependency for pyright
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install nodejs -y
 
 # Git setup
 sudo apt install git
