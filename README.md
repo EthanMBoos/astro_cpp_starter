@@ -26,6 +26,9 @@ sudo apt install curl
 # https://github.com/neovim/neovim/releases
 # Download nvim-linux-x86_64.appimage
 chmod u+x nvim-linux-x86_64.appimage && ./nvim-linux-x86_64.appimage
+sudo mv nvim-linux-x86_64.appimage /usr/local/bin/nvim
+nvim
+:Lazy sync
 
 # If using python, install nodejs dependency for pyright
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
