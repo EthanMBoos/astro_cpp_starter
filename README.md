@@ -19,9 +19,13 @@ sudo apt install xclip
 
 # Nvim dependencies
 sudo apt install ripgrep
-sudo snap install nvim --classic
 sudo apt install vim
 sudo apt install curl
+
+# Nvim Install
+# https://github.com/neovim/neovim/releases
+# Download nvim-linux-x86_64.appimage
+chmod u+x nvim-linux-x86_64.appimage && ./nvim-linux-x86_64.appimage
 
 # If using python, install nodejs dependency for pyright
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
